@@ -58,6 +58,8 @@
 
 ## 🚀 快速开始
 
+> 💡 **提示**：支持在线安装和离线安装两种方式
+
 ### 前置要求
 
 - Docker 20.10+
@@ -65,7 +67,23 @@
 - 4GB+ 内存
 - （可选）NVIDIA GPU + nvidia-docker
 
-### 步骤 1: 拉取 Docker 镜像
+### 📦 安装方式选择
+
+#### 方式一：在线安装（推荐）
+
+适用于可以访问阿里云镜像仓库的环境。
+
+#### 方式二：离线安装
+
+适用于网络受限或无法访问镜像仓库的环境。
+
+👉 **离线安装请查看**：[镜像离线安装指南.md](./镜像离线安装指南.md)
+
+---
+
+### 步骤 1: 获取 Docker 镜像
+
+**在线方式**：拉取镜像
 
 ```bash
 # CPU 版本（v2.0）
@@ -74,6 +92,18 @@ docker pull crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/wal
 # GPU 版本（v2.1cuda - 推荐）
 docker pull crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/walicap:v2.1cuda
 ```
+
+**离线方式**：加载镜像文件
+
+```bash
+# 从云盘下载镜像文件后加载
+docker load -i walicap-v2.1cuda-docker-image.tar
+```
+
+📥 **镜像文件下载地址**：
+- 百度网盘：`待更新`
+- 阿里云盘：`待更新`
+- 123云盘：`待更新`
 
 ### 步骤 2: 下载部署文件
 
