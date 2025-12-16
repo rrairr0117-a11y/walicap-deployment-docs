@@ -1,0 +1,162 @@
+# ==================== 瓦力聚合剪辑系统 - Docker Compose 配置 ====================
+# 项目：瓦力聚合剪辑系统
+# 官网：https://rrairr.cn
+# 说明：本配置文件用于快速部署瓦力聚合剪辑系统（NCA Toolkit + MinIO）
+#
+# 使用步骤：
+# 1. 确保已安装 Docker 和 Docker Compose
+# 2. 配置 .env.nca.local 文件（填入授权信息）
+# 3. 根据需要选择镜像版本（见下方说明）
+# 4. 执行：docker-compose up -d
+#
+# ==================== 镜像版本说明 ====================
+# 【GPU 版本 - v2.1cuda】（推荐用于生产环境）
+#   - 镜像地址：crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/walicap:v2.1cuda
+#   - 大小：~5.4GB
+#   - 特性：支持 NVIDIA GPU 加速，音频转写速度提升 10 倍
+#   - 要求：需要 NVIDIA GPU + nvidia-docker
+#   - 适用：生产环境、大批量处理
+#
+# 【CPU 版本 - v2.0】（适合测试和轻量使用）
+#   - 镜像地址：crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/walicap:v2.0
+#   - 大小：~3.2GB
+#   - 特性：纯 CPU 处理，无需 GPU
+#   - 适用：测试环境、小文件处理
+#
+# ==================== 如何切换版本 ====================
+# 1. 修改下方 image 字段为对应的镜像地址
+# 2. 如果使用 CPU 版本，注释掉 GPU 相关配置（deploy.resources 部分）
+# 3. 重新启动：docker-compose down && docker-compose up -d
+# ====================================================================================
+
+name: walicap
+
+services:
+  # ==================== NCA Toolkit 主服务 ====================
+  ncat:
+    # 【重要】请根据你的需求选择镜像版本：
+    # 
+    # 选项 1：GPU 版本（推荐）- 取消下面这行的注释，注释掉 CPU 版本
+    image: crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/walicapcuda:latest
+    # 
+    # 选项 2：CPU 版本 - 取消下面这行的注释，注释掉 GPU 版本，并注释掉 deploy.resources 部分
+    # image: crpi-gpb2zeuxu5n5h1lc.cn-chengdu.personal.cr.aliyuncs.com/rrairr/walicap:v2.0
+    container_name: ncat
+    env_file:
+      # 环境文件路径：当前目录下的.env.nca.local
+      - .env.nca.local
+    ports:
+      - "8080:8080"  # NCA API端口
+    environment:
+      # GPU 相关环境变量（仅 GPU 版本需要）
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+    
+    # GPU 资源配置（仅 GPU 版本需要）
+    # 如果使用 CPU 版本（v2.0），请注释掉整个 deploy 部分
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video, compute, utility]
+    volumes:
+      # 持久化存储
+      - nca_storage:/app/storage
+      - nca_logs:/app/logs
+      
+      # 【可选】N8N 共享文件目录（如果使用 N8N 集成）
+      # 取消注释并修改为你的实际路径
+      # - "E:/Cursor project/N8N/shared_files:/app/n8n_shared:rw"
+      
+      # 【可选】本地文件共享目录
+      # 取消注释以启用本地文件共享
+      # - "./shared:/app/local_shared:rw"
+    restart: unless-stopped
+    depends_on:
+      - minio
+      - minio-init
+    networks:
+      - walicap_nca-network
+    extra_hosts:
+      # 允许容器访问宿主机
+      - "host.docker.internal:host-gateway"
+    
+    healthcheck:
+      # 健康检查：确保服务正常运行
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/v1/toolkit/test"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==================== MinIO 对象存储服务 ====================
+  minio:
+    image: minio/minio:latest
+    container_name: minio-local
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # S3 API端口
+      - "9001:9001"  # Web控制台端口
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+    volumes:
+      # MinIO 数据存储目录（会在当前目录创建 minio-data 文件夹）
+      - "./minio-data:/data"
+    restart: unless-stopped
+    networks:
+      - walicap_nca-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ==================== MinIO 存储桶初始化服务 ====================
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for MinIO to be ready...';
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+      /usr/bin/mc mb myminio/nca-toolkit-local --ignore-existing;
+      /usr/bin/mc mb myminio/video-factory --ignore-existing;
+      /usr/bin/mc mb myminio/n8n-storage --ignore-existing;
+      /usr/bin/mc mb myminio/video-assets --ignore-existing;
+      /usr/bin/mc mb myminio/audio-assets --ignore-existing;
+      /usr/bin/mc anonymous set public myminio/nca-toolkit-local;
+      /usr/bin/mc anonymous set public myminio/video-factory;
+      /usr/bin/mc anonymous set public myminio/n8n-storage;
+      /usr/bin/mc anonymous set download myminio/video-assets;
+      /usr/bin/mc anonymous set download myminio/audio-assets;
+      echo '' | /usr/bin/mc pipe myminio/video-assets/shorts/.keep;
+      echo '' | /usr/bin/mc pipe myminio/video-assets/wide/.keep;
+      echo '' | /usr/bin/mc pipe myminio/video-assets/photos/.keep;
+      echo '' | /usr/bin/mc pipe myminio/audio-assets/lofi/.keep;
+      echo 'MinIO buckets created and configured successfully';
+      "
+    networks:
+      - walicap_nca-network
+
+# ==================== Docker 卷配置 ====================
+volumes:
+  nca_storage:
+    driver: local
+  nca_logs:
+    driver: local
+  minio_data:
+    driver: local
+
+# ==================== 网络配置 ====================
+networks:
+  walicap_nca-network:
+    name: walicap_nca-network
+    driver: bridge

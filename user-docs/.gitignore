@@ -1,0 +1,28 @@
+# 排除待开发文档
+待开发-智能去水印功能-第1部分.md
+待开发-智能去水印功能-第2部分.md
+
+# 排除真实环境变量文件
+.env.nca.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 临时文件
+*.log
+*.tmp
+*.swp
+*~
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# 本地数据
+minio-data/
+shared/
