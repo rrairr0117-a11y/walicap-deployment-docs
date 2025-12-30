@@ -29,12 +29,22 @@
 | 视频拼接 | `/v1/video/concatenate` | POST | 多个视频合并为一个 |
 | 多视频音频合成 | `/v1/video/combine-audio-with-videos` | POST | 视频片段+音频+字幕合成 |
 | 视频音频合并 | `/v1/video/merge-audio` | POST | 视频与音频轨道合并 |
-| 图片音频生成视频 | `/v1/video/audio-with-images` | POST | 图片序列+音频生成视频 |
-| Ken Burns效果 | `/v1/video/effects/ken-burns` | POST | 图片动态缩放平移效果 |
+| 图片音频生成视频 | `/v1/video/audio-with-images` | POST | 图片序列+音频生成视频 ✨ **支持GIF动画** |
+| Ken Burns效果 | `/v1/video/effects/ken-burns` | POST | 图片动态缩放平移效果 ✨ **已优化** |
+| Lo-Fi长视频 | `/v1/video/lofi` | POST | Lo-Fi风格长视频（支持多图均分+音效混音）🆕 |
+| 静态幻灯片 | `/v1/video/static-slideshow` | POST | 静态图片幻灯片（支持转场）🆕 |
+| 视频蒙太奇 | `/v1/video/montage` | POST | 随机视频片段拼接 |
 | 添加Logo水印 | `/v1/video/logo` | POST | 添加Logo到视频 |
 | 添加横幅 | `/v1/video/add-banner` | POST | 添加文字横幅 |
 | 生成缩略图 | `/v1/video/thumbnail` | POST | 提取视频缩略图 |
 | 获取视频信息 | `/v1/video/info` | POST | 获取视频元数据 |
+
+> **✨ 最新改进（v2.2）**:
+> - **并发下载**: 所有多图接口支持10线程并发下载，速度提升10倍
+> - **GIF支持**: `audio-with-images` 和 `lofi` 支持GIF动画保持
+> - **WEBP支持**: 所有图片接口支持WEBP格式
+> - **自动重试**: 图片下载失败自动重试3次
+> - **容错机制**: 个别图片失败不影响整体任务
 
 ### 3. 音频处理
 | 接口名称 | 路径 | 方法 | 说明 |
@@ -72,7 +82,9 @@
 |---------|------|------|------|
 | 视频分割 | `/v1/video/split` | POST | 将视频分割成多段 |
 | 视频编辑并拼接 | `/v1/video/edit-and-concatenate` | POST | 编辑多个片段并拼接 |
-| S3上传文件 | `/v1/s3/upload` | POST | 上传文件到S3存储 |
+| S3上传文件（URL/Base64） | `/v1/s3/upload` | POST | URL/Base64/二进制数据上传 🆕 |
+| S3上传文件（表单） | `/v1/s3/upload-file` | POST | multipart/form-data 上传 🆕 |
+| S3上传文件（本地路径） | `/v1/s3/upload-local` | POST | 本地文件路径上传（ComfyUI专用）🆕 |
 | S3列出文件 | `/v1/s3/list` | POST | 按bucket+prefix列出对象key |
 | 查询任务状态 | `/v1/toolkit/job/status` | POST | 查询单个任务状态 |
 | 批量查询状态 | `/v1/toolkit/jobs/status` | POST | 批量查询任务状态 |
@@ -163,6 +175,8 @@
 
 ---
 
-**文档版本**: v2.0  
-**最后更新**: 2024-12-09  
-**API版本**: v1
+**文档版本**: v2.2  
+**最后更新**: 2024-12-25  
+**API版本**: v1  
+**重大更新**: 新增 Lo-Fi/静态幻灯片接口，优化图片下载性能，支持 GIF/WEBP 格式
+
