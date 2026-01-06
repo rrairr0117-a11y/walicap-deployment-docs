@@ -364,29 +364,21 @@
 #### 完整请求体
 ```json
 {
-  // 必填参数
-  "video_urls": [                     // array, 必填, 视频URL列表
-    "string",
-    "string"
+  // 必填参数：视频对象列表（必须包含 video_url 字段）
+  "video_urls": [
+    {"video_url": "http://example.com/1.mp4"},
+    {"video_url": "http://example.com/2.mp4"}
   ],
   
-  // 拼接设置
-  "transition": "none",               // string, 转场效果: "none", "fade", "dissolve", "wipe"
-  "transition_duration": 0.5,         // number, 转场时长(秒), 范围: 0-5
-  "normalize_resolution": true,       // boolean, 是否统一分辨率, 默认: true
-  "target_resolution": "1920x1080",   // string, 目标分辨率
-  "normalize_fps": true,              // boolean, 是否统一帧率, 默认: true
-  "target_fps": 30,                  // integer, 目标帧率
-  
-  // 音频处理
-  "audio_mode": "merge",              // string, 音频模式: "merge", "first", "none"
-  "normalize_audio": true,            // boolean, 是否标准化音频, 默认: true
-  
-  // 输出设置
-  "output_format": "mp4",             // string, 输出格式
-  "webhook_url": "string"             // 可选, 回调URL
+  // 拼接设置（可选）
+  "webhook_url": "string",             // 可选, 处理完成后的回调URL
+  "id": "string"                      // 可选, 任务自定义ID
 }
 ```
+
+#### 说明
+- **参数结构**：必须使用对象列表 `[{"video_url": "..."}]`，不能直接传字符串列表。
+- **性能提示**：如果视频编码、分辨率、帧率完全一致，系统将使用 `stream copy` 模式秒速通过，无画质损失；否则会自动触发重编码以确保拼接成功。
 
 ### 2.2.1 视频蒙太奇（随机剪辑）
 **接口路径**: `/v1/video/montage`  

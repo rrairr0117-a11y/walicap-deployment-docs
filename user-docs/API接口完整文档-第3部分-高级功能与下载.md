@@ -511,64 +511,58 @@ custom_filename: custom.mp4          // 选填, 自定义文件名
 }
 ```
 
-### 7.7 FFmpeg自定义命令
+### 7.7 FFmpeg高级合成 (Flexible Compose) 🆕
 **接口路径**: `/v1/ffmpeg/compose`  
 **请求方法**: `POST`
 
 #### 完整请求体
 ```json
 {
-  // 输入文件
+  // 1. 输入文件列表 (必须)
   "inputs": [
     {
-      "url": "string",                // string, 必填, 输入文件URL
-      "options": ["-ss", "00:00:10"], // array, 输入选项(FFmpeg参数)
-      "label": "input0"               // string, 输入标签(用于复杂滤镜)
+      "file_url": "http://example.com/video.mp4", 
+      "options": [                               // 输入专有选项 (可选)
+        {"option": "-ss", "argument": "00:00:05"},
+        {"option": "-t", "argument": 10}
+      ]
     }
   ],
   
-  // 滤镜设置
-  "filters": "scale=1920:1080,fps=30", // string, 滤镜链
-  "complex_filter": "string",         // string, 复杂滤镜图
-  
-  // 输出选项
-  "output_options": [                 // array, 输出选项(FFmpeg参数)
-    "-c:v", "libx264",
-    "-crf", "23",
-    "-preset", "medium",
-    "-c:a", "aac",
-    "-b:a", "192k"
+  // 2. 滤镜链 (可选)
+  "filters": [
+    {"filter": "scale=1280:720"},
+    {"filter": "setsar=1"}
   ],
   
-  // 全局选项
-  "global_options": [                 // array, 全局选项(FFmpeg参数)
-    "-hide_banner",
-    "-loglevel", "info"
+  // 3. 输出配置 (必须)
+  "outputs": [
+    {
+      "options": [
+        {"option": "-c:v", "argument": "libx264"},
+        {"option": "-crf", "argument": 23},
+        {"option": "-preset", "argument": "fast"},
+        {"option": "-c:a", "argument": "aac"}
+      ]
+    }
   ],
   
-  // 输出配置
-  "output": {
-    "cloud_upload": true,             // boolean, 是否上传到云端
-    "filename": "output.mp4",         // string, 输出文件名
-    "format": "mp4"                   // string, 强制输出格式
-  },
+  // 4. 全局选项 (可选)
+  "global_options": [
+    {"option": "-hide_banner"}
+  ],
   
-  // 安全限制
-  "max_duration": 3600,               // integer, 最大处理时长(秒), 默认: 3600
-  "max_file_size": "5G",              // string, 最大文件大小, 默认: "5G"
-  "allowed_codecs": ["libx264", "aac"], // array, 允许的编码器列表
-  
-  // 硬件加速
-  "hardware_acceleration": {
-    "enabled": true,                  // boolean, 是否启用硬件加速
-    "type": "nvidia",                 // string, 类型: "nvidia", "intel", "amd"
-    "device": 0                       // integer, 设备索引
-  },
-  
-  // 异步处理
-  "webhook_url": "string"             // 可选, 回调URL
+  "webhook_url": "string",            // 可选, 回调URL
+  "id": "string"                      // 可选, 任务ID
 }
 ```
+
+#### 说明
+- **严谨结构**：参数不再支持简单的字符串数组，所有 key/value 对必须拆分为 `{"option": "-x", "argument": "val"}`。
+- **Inputs**: `file_url` 是必填字段，支持 http(s) 链接。
+- **Outputs**: `options` 阵列是必填的，用于定义编码参数。
+- **灵活性**：这是最强大的接口，允许直接调用底层 FFmpeg 能力，但也要求用户对 FFmpeg 参数有深入了解。
+
 
 ### 7.8 测试接口
 **接口路径**: `/v1/toolkit/test`  

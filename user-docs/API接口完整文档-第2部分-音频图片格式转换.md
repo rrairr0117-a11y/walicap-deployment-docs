@@ -9,27 +9,41 @@
 #### 完整请求体
 ```json
 {
-  // 必填参数
-  "audio_urls": [                     // array, 必填, 音频URL列表
-    "string",
-    "string"
+  // 来源 A: URL列表 (三选一)
+  "audio_urls": [
+    {"audio_url": "http://.../1.mp3"},
+    {"audio_url": "http://.../2.mp3"}
   ],
   
-  // 拼接设置
-  "crossfade": 0,                     // number, 交叉淡化时长(秒), 范围: 0-5, 默认: 0
-  "normalize": true,                  // boolean, 是否标准化音量, 默认: true
-  "gap": 0,                           // number, 音频间隔(秒), 范围: 0-10, 默认: 0
+  // 来源 B: S3 存储
+  "s3": {
+    "bucket": "my-bucket",
+    "folder_prefix": "audio/vlogs/"
+  },
   
-  // 输出设置
-  "output_format": "mp3",             // string, 输出格式: "mp3", "wav", "aac", "flac"
-  "bitrate": "192k",                  // string, 比特率: "128k", "192k", "256k", "320k"
-  "sample_rate": 44100,               // integer, 采样率: 22050, 44100, 48000
-  "channels": 2,                      // integer, 声道数: 1(单声道), 2(立体声)
+  // 来源 C: 本地目录
+  "local_folder": "/data/audio/raw",
+
+  // 拼接设置 (可选)
+  "options": {
+    "duration_seconds": 60,           // 目标总时长(秒)，系统会自动循环或裁剪
+    "shuffle": false                  // 是否随机打乱素材顺序
+  },
   
-  // 异步处理
-  "webhook_url": "string"             // 可选, 回调URL
+  "output": {
+    "cloud_upload": true,             // 是否上传到云端，默认 true
+    "filename": "combined.mp3"        // 自定义输出文件名
+  },
+  
+  "webhook_url": "string",            // 可选, 回调URL
+  "id": "string"                      // 可选, 任务ID
 }
 ```
+
+#### 说明
+- **参数结构**：使用 URL 模式时，必须是 `[{"audio_url": "..."}]`。
+- **音频兼容性**：建议素材采样率一致。如果不一致，FFmpeg 可能会报错或产生奇怪的输出。
+- **推荐方案**：如用户反馈，简单音频拼接亦可在本地使用 Python `wave` 库完成，速度更快。
 
 ### 3.2 文字转语音（TTS）- 短文本
 **接口路径**: `/v1/audio/tts/generate`  
